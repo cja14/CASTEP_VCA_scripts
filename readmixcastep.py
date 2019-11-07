@@ -120,7 +120,7 @@ class readcell():
         for i in range(self.Nions):
             elem = self.elems[i]
             # This is the default mixkey for no mixed atoms
-            mixkey[posstring(self.posns[i, :])] = {elem: {elem: 1.0}}
+            mixkey[posstring(self.posns[i, :])] = (elem, {elem: 1.0})
         lposns = stri.strindex(self.celllines,
                                ['%block positions_frac',
                                 '%BLOCK positions_frac',
@@ -139,11 +139,11 @@ class readcell():
                 elem = self.elems[i]
                 wt = float(lnsplt[imix+1].replace(')', ''))
                 poskey = posstring(self.posns[i, :])
-                fullmatchdict = mixkey[poskey]
-                matchdict = list(fullmatchdict.values())[0]
-                matchdict[elem] = wt
-                elemkey = sorted(list(set(matchdict.keys())))[0]
-                mixkey[poskey] = {elemkey: matchdict}
+                siteelem, wts = mixkey[poskey]
+                # siteelem could be overwritten when sorting
+                wts[elem] = wt
+                elemkey = sorted(list(set(wts.keys())))[0]
+                mixkey[poskey] = (elemkey, wts)
         return mixkey
     
     def get_posns(self, iteration=-1):
@@ -365,23 +365,27 @@ class readcas():
         for i in range(self.Nions):
             elem = self.elems[i]
             # This is the default mixkey for no mixed atoms
-            mixkey[posstring(posns[i, :])] = {elem: {elem: 1.0}}
+            mixkey[posstring(posns[i, :])] = (elem, {elem: 1.0})
         try:
             lmix = stri.strindex(self.caslines, 'Mixture',
                                  nmin=nmin, nmax=nmax)
-            l = lmix + 3  # l is line index
+            l = lmix + 3  # l is line index (which we'll iterate through)
             wts = {}
             matchindex = None
             posn = None
+            # Whilst in mixture block
             while self.caslines[l].split()[0] == 'x':
                 mixline = self.caslines[l].split()
                 if len(mixline) == 8:
+                    if posn is not None:  # Then poskey must be defined
+                        mixkey[poskey] = (self.elems[matchindex], wts)
+                        posn, matchindex = None, None
+                        wts = {}
                     posn = [float(p) for p in mixline[2:5]]
                     elem = mixline[5]
                     for i in range(self.Nions):
-                        if (self.elems[i] == elem and
-                            all([abs(posn[j]-posns[i, j]) < self.flttol
-                                 for j in range(3)])):
+                        dist = np.linalg.norm(np.array(posn) - posns[i, :])
+                        if (self.elems[i] == elem and dist < self.flttol):
                             matchindex = i
                             # Since it is the position from posns the key
                             # would be written for
@@ -397,8 +401,7 @@ class readcas():
                 l += 1
             # Stopped reading the file but the last mix is probably still open
             if posn is not None:
-                mixkey[poskey] = {self.elems[matchindex]: wts}
-                # This step isn't strictly necessary but just to be safe
+                mixkey[poskey] = (self.elems[matchindex], wts)
                 posn, matchindex = None, None
                 wts = {}
         except IndexError:
@@ -608,4 +611,4 @@ class readcas():
         returns
         float Fmax : maximum force on any ion (eV/Ang) """
         forces = self.get_forces(iteration=iteration)
-        return max(np.linalg.norm(forces, axis=1)
+        return max(np.linalg.norm(forces, axis=1))

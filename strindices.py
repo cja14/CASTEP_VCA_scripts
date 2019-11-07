@@ -21,7 +21,7 @@ def strindex(flist, strings, nmin=0, nmax=None, first=False, either=False):
         check = any
     else:
         check = all
-    for i, item in enumerate(flist[nmin, nmax]):
+    for i, item in enumerate(flist[nmin:nmax]):
         if check(string in item for string in strings):
             index = i + nmin
             if first:
@@ -45,6 +45,6 @@ def strindices(flist, strings, nmin=0, nmax=None, either=False):
         check = any
     else:
         check = all
-    indices = [i+nmin for i, item in enumerate(flist[nmin, nmax]) if
+    indices = [i+nmin for i, item in enumerate(flist[nmin:nmax]) if
                check(string in item for string in strings)]
     return indices

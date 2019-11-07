@@ -39,6 +39,7 @@ class mixmap():
     
     def __init__(self, mixatoms, mixkey, wttol=0.0001, postol=0.5):
         """ should be initialised for a particular mixed atom structure
+        
         ase.Atoms mixatoms : atomic structure with multiple atoms on same site
         dict mixkey : info atom mix per site (can be site or elem format)
         float wttol : weights should sum to 1.0 (tolerance for rounding errors)
@@ -56,7 +57,7 @@ class mixmap():
         # And pure structure info (elements, Nions, masses)
         self.setup_maps(mixatoms)
         
-        self.setmixcellinfo()  # Set the default info for printing cell files
+        self.setcellparams()  # Initialise calc. params at default values
     
     def setup_maps(self, mixatoms):
         """ Setup pure2mix_map and mix2pure_map mappings.
@@ -84,10 +85,12 @@ class mixmap():
             mixelem = self.mixelems[i]
             mixposn = mixposns[i, :]
             matchkey = self.sitematch(mixelem, mixposn, cell)
-            pureelem = list(self.mixkey[matchkey].keys())[0]
-            wts = self.mixkey[matchkey][pureelem]
-            
-            if wts == 1:  # This is the trivial case
+            if len(matchkey.split()) == 3:
+                pureelem, wts = self.mixkey[matchkey]
+            else:
+                pureelem = matchkey
+                wts = self.mixkey[matchkey]
+            if len(wts) == 1:  # This is the trivial case
                 puremasses += [self.mixmasses[i]]
                 pureelems += [pureelem]
                 mix2pure_map[i] = p
@@ -178,6 +181,7 @@ class mixmap():
         """
         ase.Atoms atoms : atomic structure with no mixing (one atom per site)
         mixkey elem_mixkey : mapping of the elem_mixkey format
+        
         returns
         ase.Atoms mixatoms : atomic structure with multiple atoms per site """
         posns = atoms.get_positions()
@@ -205,6 +209,7 @@ class mixmap():
         np.array(3) b : absolute coordinates of movable atom
         np.array(3, 3) lats : unit cell vector
         bool dist : return a tuple of (bprime, dist) not just bprime
+        
         returns
         np.array(3) bprime : absolute coordinates of closest image of b to a
         """
@@ -214,7 +219,7 @@ class mixmap():
         for h in [-1, 0, 1]:
             for k in [-1, 0, 1]:
                 for l in [-1, 0, 1]:
-                    bprime = b+h*lats[0, :]+k*lats[1, :]+l*lats[2, :]
+                    bprime = b + h*lats[0, :] + k*lats[1, :] + l*lats[2, :]
                     bprimes[x, :] = bprime
                     dists.append(np.linalg.norm(a-bprime))
                     x += 1
@@ -229,7 +234,12 @@ class mixmap():
     def check_wts(mixkey, wttol=0.0001):
         """ Check that the atom weights for each site sums to 1.0 """
         for sitekey in list(mixkey.keys()):
-            wts = list(mixkey[sitekey].values())[0]
+            if len(sitekey.split()) == 3:  # site_mixkey
+                wts = mixkey[sitekey][1]
+            elif len(sitekey.split()) == 1:  # elem_mixkey
+                wts = mixkey[sitekey]
+            else:
+                raise KeyError(sitekey+' not recognised as mixkey.')
             sitewt = sum(list(wts.values()))
             if abs(sitewt-1) > wttol:
                 raise AttributeError('Sum of concs on site ' + sitekey
@@ -255,12 +265,13 @@ class mixmap():
             for sitekey in sitekeys:
                 site = np.array([float(s) for s in sitekey.split()])
                 siteposn = np.dot(site, cell)
-                dists += [self.closestimage(posn, siteposn, cell,
-                                            rtn_dist=True)]
+                vector, dist = self.closestimage(posn, siteposn, cell,
+                                                 rtn_dist=True)
+                dists += [dist]
             matchkey = sitekeys[dists.index(min(dists))]
         elif len(sitekeys[0].split()) == 1:  # elem format for mixkey
             for sitekey in sitekeys:
-                if elem in self.mixkey[sitekey].values():
+                if elem in self.mixkey[sitekey]:
                     matchkey = sitekey
             if matchkey is None:
                 raise KeyError('Element: '+elem+' does not appear in mixkeys')
@@ -383,6 +394,7 @@ class mixmap():
         spins = self.spins
         if pure:
             spins = self.mix2pure_spins(spins)
+            Natoms = self.pureions
         if self.frac:
             caslines += ['%BLOCK POSITIONS_FRAC\n']
             mixposns = atoms.get_scaled_positions()
@@ -465,12 +477,11 @@ class mixmap():
         # This writes the .cell file
         open(cellfile, 'w').writelines(caslines)
     
-    def setcascellinfo(self, pseudos=pseudo_default, frac=True,
-                       kpoints=kpts_default,
-                       kpoints_offset=kpts_offset_default,
-                       sym_gen=True, snap_sym=True, spins=spins_default,
-                       pressure=pressure_default,
-                       cell_constrs=cell_constrs_default, ion_constrs=None):
+    def setcellparams(self, pseudos=pseudo_default, frac=True,
+                      kpoints=kpts_default, kpoints_offset=kpts_offset_default,
+                      sym_gen=True, snap_sym=True, spins=spins_default,
+                      pressure=pressure_default,
+                      cell_constrs=cell_constrs_default, ion_constrs=None):
         """ Set additonal info for the CASTEP .cell file """
         if pseudos:
             elemset = list(set(self.mixelems))
