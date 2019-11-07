@@ -200,6 +200,7 @@ class readcas():
     """
     Class for extracting info from .castep output files (may have mixed atoms)
     """
+    
     def __init__(self, casfile, flttol=1e-4):
         """
         string cellfile : path to .castep file
@@ -219,6 +220,7 @@ class readcas():
     def extract_struc(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
+        
         returns
         ase.Atoms casatoms : structure at the desired iteration """
         posns = self.get_posns(iteration=iteration)
@@ -349,7 +351,9 @@ class readcas():
     
     def get_mixkey(self, iteration=-1):
         """ Extract a dictionary mapping mixed atoms onto single site
+        
         int iteration : atom positions (site labels) change during simulation
+        
         returns
         dict mixkey : mapping -- see mixmap module for more info """
         posns = self.get_posns(iteration=iteration)
@@ -404,13 +408,13 @@ class readcas():
     def geomrange(self, iteration=-1, nmin=0, nmax=None):
         """
         int iteration : positive count from front and negative from back
-        Note: iteration=None means an unconstrained data extraction
+        Note: iteration == None means an unconstrained data extraction
         (includes hanging/incomplete geom iterations!)
         int nmin, nmax : minimum/maximum line indices to consider
-        (will count WITHIN these indices!)
+        Note: will count WITHIN these indices!
+        
         returns
-        int (lmin, lmax) : minimum/maximum line index for iteration
-        """
+        int (lmin, lmax) : minimum/maximum line index for iteration """
         if nmax is None:
             nmax = self.Nlines
         if iteration is None:
@@ -487,6 +491,7 @@ class readcas():
     def get_cell(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
+        
         returns
         np.array(3, 3) cell : unit cell vectors (Angstroms) """
         cell = np.zeros((3, 3))
@@ -508,6 +513,7 @@ class readcas():
     def get_enthalpy(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
+        
         returns
         float enthalpy : cell enthalpy in eV """
         if self.Niterations == 0:
@@ -526,6 +532,7 @@ class readcas():
     def get_energy(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
+        
         returns
         float energy : cell energy in eV """
         if self.Niterations == 0:
@@ -548,6 +555,7 @@ class readcas():
     def get_forces(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
+        
         returns
         np.array(Nions, 3) forces : force vector of each ion (eV/Ang) """
         forces = np.zeros((self.Nions, 3))
@@ -573,6 +581,7 @@ class readcas():
     def get_stresses(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
+        
         returns
         np.array(3, 3) stresses : stress matrix (eV/Ang^3) """
         stresses = np.zeros((3, 3))
@@ -595,6 +604,7 @@ class readcas():
     def get_Fmax(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
+        
         returns
         float Fmax : maximum force on any ion (eV/Ang) """
         forces = self.get_forces(iteration=iteration)

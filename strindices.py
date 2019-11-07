@@ -6,6 +6,7 @@ Generally the list is normally to be a list of file lines from f.readlines().
 
 def strindex(flist, strings, nmin=0, nmax=None, first=False, either=False):
     """ Extract index of first/last line in list at which string occurs.
+    
     list flist : list to take indices from
     str/list strings : string to look for, if list looking for several strings
     int nmin, nmax : minimum/maximum index to consider
@@ -30,6 +31,7 @@ def strindex(flist, strings, nmin=0, nmax=None, first=False, either=False):
 
 def strindices(flist, strings, nmin=0, nmax=None, either=False):
     """ Extract indices of all lines in list where strings occur.
+    
     list flist : list to take indices from
     str/list strings : string to look for, if list, all must occur in same line
     int nmin, nmax : minimum/maximum index to consider
