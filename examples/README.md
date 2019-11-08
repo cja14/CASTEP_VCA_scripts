@@ -104,14 +104,22 @@ Using the _create_mixture()_ function in the _mixmap_ module (note not a method 
 
 ## Phonon Calculations
 
+Unfortunately CASTEP cannot perform phonon calculations using DFPT when the VCA is employed, therefore, to compute lattice dynamics we will have to use a finite differences method. The _phonons_VCA_ module acts as a wrapper to the _phonopy_ module, converting VCA mix structures and forces into pure structures to be analysed by _phonopy_ .
+
 ```python
 import phonons_VCA as pVCA
 
-pVCA.gen_perturbations('examples/Ca1.5Sr0.5GeO4/Ca1.5Sr0.5GeO4.castep')
+pVCA.gen_perturbations('Ca1.5Sr0.5GeO4/Ca1.5Sr0.5GeO4.castep')
 ```
 
+To generate the symmetry-independent displacements for a Gamma-point phonon calculation using this module requires only a single line of code. You should now discover that 21 .cell files, named _Ca1.5Sr0.5GeO4_*.cell_ , have now been generated in the subdirectory _Ca1.5Sr0.5GeO4/_ .
+
+In normal use you will need to take these cell files and perform singlepoint CASTEP simulations. However, in true Blue Peter style, here this has been done for you and in this directory we can find appropriately named .castep output files.
+
+Reading the files, extracting the forces, constructing and then diagonalising the dynamical matrix has been reduced using the _phonon_VCA_ module to a single function. There are two methods of running this function. Method 1 effectively generates a new set of displacements for the parent structure and assumes that these are labelled exactly the same as the output files being read. This method is quick but would fail if the perturbations change order. Method 2 checks what .castep files are available that follow the appropriate naming convention, reads these files and extracts the displacements. This method is thus slower but in theory more stable. In this example we use the latter method, with the "verbose" flag set to _True_ so we can monitor the progress of the calculation:
+
 ```python
-output = pVCA.calc_phonons('examples/Ca1.5Sr0.5GeO4/Ca1.5Sr0.5GeO4.castep',
+output = pVCA.calc_phonons(Ca1.5Sr0.5GeO4/Ca1.5Sr0.5GeO4.castep',
                            method=2, verbose=True)
 
 q_points, distances, frequencies, eigenvectors = output
@@ -126,4 +134,5 @@ print(eigvecs[1, :15].reshape(5, 3))
 print(eigvecs[2, :15].reshape(5, 3))
 ```
 
+The output to the _pVCA.calc_phonons()_ wrapper is the same as the underlying _phonopy_ method: _PhononObj.get_band_structure()_ . A tuple of four lists are returned where each list element corresponds to a phonon calculation performed at a different q-vector. These lists represent the q-vector, distance (for plotting a band structure), harmonic frequencies and phonon eigenvectors for each of these calculations. In this example, we compute only Gamma-point modes and therefore we show how to access the first 10 of the 3*N frequencies (in cm-1) and complex eigenvector components for the first 5 atoms of the first two eigenvectors out of the 3*N total 3*N-dimensional eigenvectors (if N is the number of ions in the pure structure).
 
