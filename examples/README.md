@@ -112,7 +112,7 @@ import phonons_VCA as pVCA
 pVCA.gen_perturbations('Ca1.5Sr0.5GeO4/Ca1.5Sr0.5GeO4.castep')
 ```
 
-To generate the symmetry-independent displacements for a Gamma-point phonon calculation using this module requires only a single line of code. You should now discover that 21 .cell files, named _Ca1.5Sr0.5GeO4_*.cell_ , have now been generated in the subdirectory _Ca1.5Sr0.5GeO4/_ .
+To generate the symmetry-independent displacements for a Gamma-point phonon calculation using this module requires only a single line of code. You should now discover that 21 .cell files, named _Ca1.5Sr0.5GeO4_*.cell_ , have now been generated in the sub-directory _Ca1.5Sr0.5GeO4/_ .
 
 In normal use you will need to take these cell files and perform singlepoint CASTEP simulations. However, in true Blue Peter style, here this has been done for you and in this directory we can find appropriately named .castep output files.
 
