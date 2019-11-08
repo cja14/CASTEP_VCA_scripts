@@ -33,6 +33,31 @@ pressure_default = [0.0]*6
 cell_constrs_default = [1, 2, 3, 0, 0, 0]  # Assumes orthorhombic cell
 
 
+def create_mixture(atoms, elem_mixkey):
+    """
+    ase.Atoms atoms : atomic structure with no mixing (one atom per site)
+    mixkey elem_mixkey : mapping of the elem_mixkey format
+    
+    returns
+    ase.Atoms mixatoms : atomic structure with multiple atoms per site """
+    posns = atoms.get_positions()
+    elems = atoms.get_chemical_symbols()
+    newposns = posns.copy()
+    newelems = [] + elems
+    for key in list(elem_mixkey.keys()):
+        subs = [elem for elem in elem_mixkey[key] if elem != key]
+        if len(subs):
+            keyinds = [i for i, elem in enumerate(elems) if elem == key]
+            keyposns = posns[keyinds]
+            for sub in subs:
+                newposns = np.vstack((newposns, keyposns))
+                newelems += [sub]*len(keyinds)
+    cell = atoms.get_cell()
+    mixatoms = ase.Atoms(symbols=newelems, positions=newposns,
+                         cell=cell, pbc=True)
+    return mixatoms
+
+
 class mixmap():
     """ Class used for mapping between structures with mixed atoms and pure
     atoms on a single site."""
@@ -175,31 +200,6 @@ class mixmap():
                                      "elem_mixkey because different mixtures "
                                      + "for same  element on different sites.")
         return elem_mixkey
-    
-    @staticmethod
-    def mix_atoms(atoms, elem_mixkey):
-        """
-        ase.Atoms atoms : atomic structure with no mixing (one atom per site)
-        mixkey elem_mixkey : mapping of the elem_mixkey format
-        
-        returns
-        ase.Atoms mixatoms : atomic structure with multiple atoms per site """
-        posns = atoms.get_positions()
-        elems = atoms.get_chemical_symbols()
-        newposns = posns.copy()
-        newelems = [] + elems
-        for key in list(elem_mixkey.keys()):
-            subs = [elem for elem in elem_mixkey[key] if elem != key]
-            if len(subs):
-                keyinds = [i for i, elem in enumerate(elems) if elem == key]
-                keyposns = posns[keyinds]
-                for sub in subs:
-                    newposns = np.vstack((newposns, keyposns))
-                    newelems += [sub]*len(keyinds)
-        cell = atoms.get_cell()
-        mixatoms = ase.Atoms(symbols=newelems, positions=newposns,
-                             cell=cell, pbc=True)
-        return mixatoms
     
     @staticmethod
     def closestimage(a, b, lats, rtn_dist=False):
