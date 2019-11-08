@@ -113,7 +113,7 @@ mapping.casprint(mixatoms, 'test3.cell', pure=False)  # write mix cell
 
 # Generate perturbations for phonon calcuation
 
-pVCA.gen_perturbations('examples/Ca1.5Sr0.5GeO4.castep')
+pVCA.gen_perturbations('examples/Ca1.5Sr0.5GeO4/Ca1.5Sr0.5GeO4.castep')
 
 print('\nGenerated perturbed cell files for phonon input.')
 
@@ -121,8 +121,8 @@ print('\nGenerated perturbed cell files for phonon input.')
 
 # Compute phonons (using method 1)
 
-output = pVCA.calc_phonons('examples/Ca1.5Sr0.5GeO4.castep', method=1,
-                           verbose=True)
+output = pVCA.calc_phonons('examples/Ca1.5Sr0.5GeO4/Ca1.5Sr0.5GeO4.castep',
+                           method=1, verbose=True)
 q_points, distances, frequencies, eigenvectors = output
 freqs = frequencies[0][0]
 eigvecs = eigenvectors[0][0]
@@ -138,8 +138,8 @@ print(eigvecs[2, :15].reshape(5, 3))
 
 # Compute phonons (using method 2) -- slower but more stable method
 
-output = pVCA.calc_phonons('examples/Ca1.5Sr0.5GeO4.castep', method=2,
-                           verbose=True)
+output = pVCA.calc_phonons('examples/Ca1.5Sr0.5GeO4/Ca1.5Sr0.5GeO4.castep',
+                           method=2, verbose=True)
 q_points, distances, frequencies, eigenvectors = output
 freqs = frequencies[0][0]
 eigvecs = eigenvectors[0][0]
