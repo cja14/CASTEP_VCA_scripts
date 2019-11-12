@@ -40,6 +40,31 @@ class readcell():
         self.elems = self.casatoms.get_chemical_symbols()
         self.posns = self.casatoms.get_scaled_positions()
         self.Nions = len(self.casatoms)
+        self.get_all_calc_params()
+    
+    def get_all_calc_params(self):
+        """ Extracts all lines from the .cell file that are NOT related to
+        the structure (i.e. not the cell or positions block).
+        
+        This is much easier to do for a .cell file (where everything is input)
+        than for a .castep file.
+        """
+        strucblocks = ['%BLOCK LATTICE_', '%BLOCK lattice_',
+                       '%block lattice_', '%BLOCK POSITIONS_',
+                       '%BLOCK positions_', '%block positions_']
+        self.paramlines = []
+        ln = 0  # Line number (to iterate through)
+        while ln < self.Nlines:
+            cellline = self.celllines[ln]
+            if all([string not in cellline for string in strucblocks]):
+                self.paramlines += [cellline]
+                ln += 1
+            else:
+                ln += 1
+                while ('%ENDBLOCK' not in cellline and
+                       '%endblock' not in cellline):
+                    cellline = self.celllines[ln]
+                    ln += 1
     
     def extract_struc(self, iteration=None):
         """ Ensures behaviour is the same as readcastep """
@@ -107,8 +132,8 @@ class readcell():
                  'spin' in self.celllines[lposns+1+i])):
                 lnsplt = self.celllines[lposns+1+i].split()
                 for j, string in enumerate(lnsplt):
-                    if 'MIXTURE' in string or 'mixture' in string:
-                        imix = j
+                    if 'SPIN' in string or 'spin' in string:
+                        break
                 spins[i] = float(lnsplt[j].split('=')[1])
         return spins
     
@@ -304,7 +329,7 @@ class readcas():
     def get_elements(self):
         """ returns
         list of strings : element of each ion (atoms.get_chemical_symbols) """
-        lelem = stri.strindex(self.caslines, 'Element', first=True)
+        lelem = stri.strindex(self.caslines, 'Element ', first=True)
         elems = []
         for casline in self.caslines[lelem+3:lelem+3+self.Nions]:
             elems += [casline.split()[1]]
@@ -404,7 +429,7 @@ class readcas():
                 mixkey[poskey] = (self.elems[matchindex], wts)
                 posn, matchindex = None, None
                 wts = {}
-        except IndexError:
+        except (UnboundLocalError, IndexError):
             pass  # Normal behaviour if no VCA used
         return mixkey
     
@@ -453,10 +478,7 @@ class readcas():
             nmin, nmax = (0, self.Nlines)
         elif self.task == 'geometry':
             nmin, nmax = self.geomrange(iteration=iteration)
-        lposn = stri.strindex(
-            self.caslines,
-            'Element    Atom        Fractional coordinates of atoms',
-            nmin=nmin, nmax=nmax)
+        lposn = stri.strindex(self.caslines, 'Element ', nmin=nmin, nmax=nmax)
         poslines = self.caslines[lposn + 3:lposn + 3 + self.Nions]
         for i in range(self.Nions):
             posns[i, :] = [float(p) for p in poslines[i].split()[3:6]]
