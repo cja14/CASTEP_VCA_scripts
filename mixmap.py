@@ -33,27 +33,58 @@ pressure_default = [0.0]*6
 cell_constrs_default = [1, 2, 3, 0, 0, 0]  # Assumes orthorhombic cell
 
 
-def create_mixture(atoms, elem_mixkey):
+def pzero(x):
+    """ Make sure zeros are displayed as positive """
+    if x == 0.0:
+        x = 0.0
+    return x
+
+
+def posstring(posn):
+    """ unambiguously flattern a position array to a string """
+    return ' '.join([str('{0:.6f}'.format(pzero(posn[j])))
+                     for j in range(len(posn))])
+
+
+def create_mixture(pureatoms, mixkey):
     """
-    ase.Atoms atoms : atomic structure with no mixing (one atom per site)
-    mixkey elem_mixkey : mapping of the elem_mixkey format
+    ase.Atoms pureatoms : atomic structure with no mixing (one atom per site)
+    mixkey mixkey : mixkey of either the site or elem format
+    
+    NOTE: at present this function DOES NOT consider spins
     
     returns
     ase.Atoms mixatoms : atomic structure with multiple atoms per site """
-    posns = atoms.get_positions()
-    elems = atoms.get_chemical_symbols()
-    newposns = posns.copy()
-    newelems = [] + elems
-    for key in list(elem_mixkey.keys()):
-        subs = [elem for elem in elem_mixkey[key] if elem != key]
-        if len(subs):
-            keyinds = [i for i, elem in enumerate(elems) if elem == key]
-            keyposns = posns[keyinds]
-            for sub in subs:
-                newposns = np.vstack((newposns, keyposns))
-                newelems += [sub]*len(keyinds)
-    cell = atoms.get_cell()
-    mixatoms = ase.Atoms(symbols=newelems, positions=newposns,
+    posns = pureatoms.get_positions()
+    pureelems = pureatoms.get_chemical_symbols()
+    cell = pureatoms.get_cell()
+    mkey0 = list(mixkey.keys())[0]
+    mixposns = []
+    mixelems = []
+    if len(mkey0.split()) == 1:  # mixkey in element format
+        for i, key in enumerate(pureelems):
+            posn = posns[i]
+            subdict = mixkey[key]
+            for sub in subdict:
+                mixposns += [posn]
+                mixelems += [sub]
+    elif len(mkey0.split()) == 3:  # mixkey in site format
+        for key in mixkey:
+            posn = np.array([float(p) for p in key.split()])
+            pureelem, subdict = mixkey[key]
+            for sub in subdict:
+                mixposns += [posn]
+                mixelems += [sub]
+    mixelemset = sorted(list(set(mixelems)))
+    mixposns_sorted = []
+    mixelems_sorted = []
+    for elem in mixelemset:
+        for i, e in enumerate(mixelems):
+            if e == elem:
+                mixposns_sorted += [mixposns[i]]
+                mixelems_sorted += [elem]
+    mixposns_sorted = np.array(mixposns_sorted)
+    mixatoms = ase.Atoms(symbols=mixelems_sorted, positions=mixposns_sorted,
                          cell=cell, pbc=True)
     return mixatoms
 
@@ -200,6 +231,33 @@ class mixmap():
                                      "elem_mixkey because different mixtures "
                                      + "for same  element on different sites.")
         return elem_mixkey
+    
+    @staticmethod
+    def trivial_mixkey(pureatoms):
+        """ returns a site_mixkey where all sites are occupied by one ion """
+        posns = pureatoms.get_scaled_positions()
+        elems = pureatoms.get_chemical_symbols()
+        site_mixkey = {}
+        for i, elem in range(elems):
+            poskey = posstring(posns[i, :])
+            site_mixkey[poskey] = (elem, {elem: 1.0})
+        return site_mixkey
+    
+    @staticmethod
+    def elem2site_mixkey(atoms, elem_mixkey, pure=True):
+        """ Converts a mixkey of the elem format to one of the site format """
+        posns = atoms.get_scaled_positions()
+        elems = atoms.get_chemical_symbols()
+        site_mixkey = {}
+        for i, elem in range(elems):
+            poskey = posstring(posns[i, :])
+            if pure:  # pureelem will just be elem_mixkey key - easy
+                site_mixkey[poskey] = (elem, elem_mixkey[elem])
+            else:  # Otherwise, we're working with mixatoms
+                for key in elem_mixkey:
+                    if elem in elem_mixkey[key].keys():
+                        site_mixkey[poskey] = (key, elem_mixkey[key])
+        return site_mixkey
     
     @staticmethod
     def closestimage(a, b, lats, rtn_dist=False):
