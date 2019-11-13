@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import readmixcastep as rc
 import mixmap
 import phonons_VCA as pVCA

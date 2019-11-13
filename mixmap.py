@@ -26,7 +26,7 @@ must be unique
 # Defaults -- these are relevant when printing cell files
 # Note that these are sensible defaults for A2BO4 Ruddlesden-Popper oxides
 pseudo_default = True
-kpts_default = [5, 5, 1]
+kpts_default = [8, 8, 4]
 kpts_offset_default = [0.1, 0.1, 0.5]
 spins_default = None
 pressure_default = [0.0]*6
@@ -435,10 +435,10 @@ class mixmap():
             [str(self.kpoints_offset[j]) for j in range(3)])+'\n']
         
         # Pseudo potentials
-        caslines += ['\n']+['%block species_pot\n']
+        caslines += ['\n']+['%BLOCK SPECIES_POT\n']
         for elem in list(self.pseudos.keys()):
             caslines += ['\t'+elem+' '+self.pseudos[elem]+'\n']
-        caslines += ['%endblock species_pot\n']+['\n']
+        caslines += ['%ENDBLOCK SPECIES_POT\n']+['\n']
         
         # Symmetry statements
         if self.sym_gen:
@@ -485,9 +485,11 @@ class mixmap():
         """ Set additonal info for the CASTEP .cell file """
         if pseudos:
             elemset = list(set(self.mixelems))
-            pseudos = {}
-            for elem in elemset:
-                pseudos[elem] = elem+'_OTF_E1650_PBEsol_NC.usp'
+            pseudos = {"Mg": "1|1.8|3|4|4|30N:31L:32N",
+                    "O": "2|1.2|23|26|31|20NN:21NN(qc=9)",
+                    "La": "4|2.1|15|17|20|50N:60N:51N:52N:43N{4f0.1}(qc=6,q3=8)",
+                    "Al": "1|1.6|6|7|8|30N:31L:32N",
+                    "Ba":"2|2.0|8|10|11|50N:60N:51N(qc=5.5)"}
         self.pseudos = pseudos
         self.frac = frac
         self.kpoints = kpoints

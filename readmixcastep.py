@@ -304,7 +304,7 @@ class readcas():
     def get_elements(self):
         """ returns
         list of strings : element of each ion (atoms.get_chemical_symbols) """
-        lelem = stri.strindex(self.caslines, 'Element', first=True)
+        lelem = stri.strindex(self.caslines, 'Element ', first=True)
         elems = []
         for casline in self.caslines[lelem+3:lelem+3+self.Nions]:
             elems += [casline.split()[1]]
@@ -404,7 +404,7 @@ class readcas():
                 mixkey[poskey] = (self.elems[matchindex], wts)
                 posn, matchindex = None, None
                 wts = {}
-        except IndexError:
+        except (UnboundLocalError, IndexError):
             pass  # Normal behaviour if no VCA used
         return mixkey
     
@@ -455,8 +455,7 @@ class readcas():
             nmin, nmax = self.geomrange(iteration=iteration)
         lposn = stri.strindex(
             self.caslines,
-            'Element    Atom        Fractional coordinates of atoms',
-            nmin=nmin, nmax=nmax)
+            'Element ', nmin=nmin, nmax=nmax)
         poslines = self.caslines[lposn + 3:lposn + 3 + self.Nions]
         for i in range(self.Nions):
             posns[i, :] = [float(p) for p in poslines[i].split()[3:6]]
