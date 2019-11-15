@@ -3,7 +3,7 @@ import strindices as stri
 from casase import casread
 from ase import Atoms
 
-recognised_tasks = ['single', 'geometry']
+recognised_tasks = ['single', 'geometry', "Electronic"]
 
 """
 Module to manage reading of CASTEP input and output files.
@@ -316,7 +316,7 @@ class readcas():
     def get_Niterations(self):
         """ returns
         int Niterations : number of structures with enthalpy computed """
-        if self.task == 'single':
+        if (self.task == 'single' or self.task == "Electronic"):
             if self.complete == 1:
                 Niterations = 1
             else:
@@ -382,7 +382,7 @@ class readcas():
         returns
         dict mixkey : mapping -- see mixmap module for more info """
         posns = self.get_posns(iteration=iteration)
-        if self.task == 'single':
+        if (self.task == 'single' or self.task == "Electronic"):
             (nmin, nmax) = (0, self.Nlines)
         elif self.task == 'geometry':
             (nmin, nmax) = self.geomrange(iteration=iteration)
@@ -474,7 +474,7 @@ class readcas():
         returns
         np.array(Nions, 3) posns : fractional position of each ion """
         posns = np.zeros((self.Nions, 3))
-        if self.task == 'single':
+        if (self.task == 'single' or self.task == "Electronic"):
             nmin, nmax = (0, self.Nlines)
         elif self.task == 'geometry':
             nmin, nmax = self.geomrange(iteration=iteration)
@@ -520,7 +520,7 @@ class readcas():
         returns
         np.array(3, 3) cell : unit cell vectors (Angstroms) """
         cell = np.zeros((3, 3))
-        if self.task == 'single':
+        if (self.task == 'single' or self.task == "Electronic"):
             nmin, nmax = (0, self.Nlines)
         elif self.task == 'geometry':
             cellconstrs = self.get_cell_constrs()
@@ -528,6 +528,7 @@ class readcas():
                 # at the end or for each iteration since they do not change
                 iteration = 0
             nmin, nmax = self.geomrange(iteration=iteration)
+            print("nmin, nmax: ", nmin, nmax)
         lcell = stri.strindex(self.caslines, 'Real Lattice(A)',
                               nmin=nmin, nmax=nmax)
         celllines = self.caslines[lcell + 1:lcell + 4]

@@ -25,7 +25,6 @@ must be unique
 
 # Defaults -- these are relevant when printing cell files
 # Note that these are sensible defaults for A2BO4 Ruddlesden-Popper oxides
-pseudo_default = True
 kpts_default = [8, 8, 4]
 kpts_offset_default = [0.1, 0.1, 0.5]
 spins_default = None
@@ -53,8 +52,11 @@ def create_mixture(pureatoms, mixkey):
     
     NOTE: at present this function DOES NOT consider spins
     
-    returns
-    ase.Atoms mixatoms : atomic structure with multiple atoms per site """
+    Returns:
+    --------
+    ase.Atoms mixatoms : atomic structure with multiple atoms per site
+    """
+
     posns = pureatoms.get_positions()
     pureelems = pureatoms.get_chemical_symbols()
     cell = pureatoms.get_cell()
@@ -493,10 +495,11 @@ class mixmap():
             [str(self.kpoints_offset[j]) for j in range(3)])+'\n']
         
         # Pseudo potentials
-        caslines += ['\n']+['%BLOCK SPECIES_POT\n']
-        for elem in list(self.pseudos.keys()):
-            caslines += ['\t'+elem+' '+self.pseudos[elem]+'\n']
-        caslines += ['%ENDBLOCK SPECIES_POT\n']+['\n']
+        if self.pseudos:
+            caslines += ['\n']+['%BLOCK SPECIES_POT\n']
+            for elem in list(self.pseudos.keys()):
+                caslines += ['\t'+elem+' '+self.pseudos[elem]+'\n']
+            caslines += ['%ENDBLOCK SPECIES_POT\n']+['\n']
         
         # Symmetry statements
         if self.sym_gen:
@@ -535,7 +538,7 @@ class mixmap():
         # This writes the .cell file
         open(cellfile, 'w').writelines(caslines)
     
-    def setcellparams(self, pseudos=pseudo_default, frac=True,
+    def setcellparams(self, pseudos=True, frac=True,
                       kpoints=kpts_default, kpoints_offset=kpts_offset_default,
                       sym_gen=True, snap_sym=True, spins=spins_default,
                       pressure=pressure_default,
