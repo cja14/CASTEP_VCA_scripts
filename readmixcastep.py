@@ -528,7 +528,6 @@ class readcas():
                 # at the end or for each iteration since they do not change
                 iteration = 0
             nmin, nmax = self.geomrange(iteration=iteration)
-            print("nmin, nmax: ", nmin, nmax)
         lcell = stri.strindex(self.caslines, 'Real Lattice(A)',
                               nmin=nmin, nmax=nmax)
         celllines = self.caslines[lcell + 1:lcell + 4]
