@@ -34,7 +34,7 @@ def main():
     mapping = mixmap.mixmap(mixatoms, mixkey)
     mapping.setcellparams(kpoints=kpoints, kpoints_offset=offset,
             cell_constrs=constrs)
-    mapping.casprint(mixatoms, casseed + "_tuto.cell", pure=False)
+    mapping.casprint(mixatoms, casseed + "_tutopure.cell", pure=True)
 
     
 if __name__ == "__main__":
