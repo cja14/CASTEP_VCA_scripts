@@ -1,4 +1,5 @@
 import ase
+import ase.io as io
 import numpy as np
 
 """
@@ -25,12 +26,12 @@ must be unique
 
 # Defaults -- these are relevant when printing cell files
 # Note that these are sensible defaults for A2BO4 Ruddlesden-Popper oxides
+
 kpts_default = [8, 8, 4]
 kpts_offset_default = [0.1, 0.1, 0.5]
 spins_default = None
 pressure_default = [0.0]*6
 cell_constrs_default = [1, 2, 3, 0, 0, 0]  # Assumes orthorhombic cell
-
 
 def pzero(x):
     """ Make sure zeros are displayed as positive """
@@ -38,20 +39,18 @@ def pzero(x):
         x = 0.0
     return x
 
-
 def posstring(posn):
     """ unambiguously flattern a position array to a string """
     return ' '.join([str('{0:.6f}'.format(pzero(posn[j])))
                      for j in range(len(posn))])
 
-
 def create_mixture(pureatoms, mixkey):
     """
     ase.Atoms pureatoms : atomic structure with no mixing (one atom per site)
     mixkey mixkey : mixkey of either the site or elem format
-    
+
     NOTE: at present this function DOES NOT consider spins
-    
+
     Returns:
     --------
     ase.Atoms mixatoms : atomic structure with multiple atoms per site
@@ -90,14 +89,13 @@ def create_mixture(pureatoms, mixkey):
                          cell=cell, pbc=True)
     return mixatoms
 
-
 class mixmap():
     """ Class used for mapping between structures with mixed atoms and pure
     atoms on a single site."""
-    
-    def __init__(self, mixatoms, mixkey, wttol=0.0001, postol=0.5):
+
+    def __init__(self, mixatoms, mixkey, wttol=0.0001, postol=0.001):
         """ should be initialised for a particular mixed atom structure
-        
+
         ase.Atoms mixatoms : atomic structure with multiple atoms on same site
         dict mixkey : info atom mix per site (can be site or elem format)
         float wttol : weights should sum to 1.0 (tolerance for rounding errors)
@@ -108,35 +106,35 @@ class mixmap():
         self.postol = postol
         # This info is fixed for this mixmap instance
         self.mixelems = mixatoms.get_chemical_symbols()
-        self.mixions = mixatoms.get_number_of_atoms()
+        self.mixions = mixatoms.get_global_number_of_atoms()
         self.mixmasses = mixatoms.get_masses()
-        
+
         # This sets up mappings between pure and mix structures
         # And pure structure info (elements, Nions, masses)
         self.setup_maps(mixatoms)
-        
+
         self.setcellparams()  # Initialise calc. params at default values
-    
+
     def setup_maps(self, mixatoms):
         """ Setup pure2mix_map and mix2pure_map mappings.
-        
+
         These mappings map an atom index in the pure structure to indices in
         the mix structure or visa versa.
         This method also sets up attributes of the pure structure that
         remain fixed for this instance (i.e. Nions, elems, masses)
-        
+
         ase.Atoms mixatoms : structure with multiple atoms on same site"""
-        
+
         mixposns = mixatoms.get_positions()
         cell = mixatoms.get_cell()
-        
+
         pureelems = []     # Element list for pure structure
         puremasses = []    # Masses for each pure site (average of mix atoms)
-        
+
         pure2mix_map = {}  # Map pure indices to mix indices
         mix2pure_map = {}  # Map mix indices to a pure index
         mixsitemixes = {}  # Gives the weight corresponding to each mix index
-        
+
         p = 0  # Index of atoms in the pure structure
         m = 1  # Index of mixture atoms
         for i in range(self.mixions):
@@ -155,7 +153,7 @@ class mixmap():
                 pure2mix_map[p] = {mixelem: (1.0, i)}
                 mixsitemixes[i] = (0, 1.0)
                 p += 1
-            
+
             elif mixelem == pureelem:  # Mixed atoms on this site
                 mass = 0
                 sitemapdict = {}
@@ -435,7 +433,8 @@ class mixmap():
         caslines = ['%BLOCK LATTICE_CART\n']
         cell = atoms.get_cell()
         for i in range(3):
-            caslines += ['\t'+'\t'.join([str('{0:.8f}'.format(cell[i, j]))
+            caslines += ['\t'+'\t'.join([str('{0:.10f}'.format(cell[i,
+                j]).rstrip('0').rstrip('.'))
                                          for j in range(3)])+'\n']
         caslines += ['%ENDBLOCK LATTICE_CART\n']+['\n']
         
@@ -479,7 +478,9 @@ class mixmap():
             else:
                 spinstring = '\tSPIN='+str(spin)
             posstring = '\t'.join(
-                [str('{0:.8f}'.format(mixposns[i, j])) for j in range(3)])
+                [str('{0:.10f}'.format(mixposns[i,
+                    j]).rstrip("0").rstrip("."))\
+                            for j in range(3)])
             caslines += ['\t' + mixelems[i] + '\t' + posstring
                          + spinstring + mixstring + '\n']
         if self.frac:
@@ -538,19 +539,13 @@ class mixmap():
         # This writes the .cell file
         open(cellfile, 'w').writelines(caslines)
     
-    def setcellparams(self, pseudos=True, frac=True,
+    def setcellparams(self, frac=True,
                       kpoints=kpts_default, kpoints_offset=kpts_offset_default,
                       sym_gen=True, snap_sym=True, spins=spins_default,
                       pressure=pressure_default,
-                      cell_constrs=cell_constrs_default, ion_constrs=None):
+                      cell_constrs=cell_constrs_default, ion_constrs=None,
+                      pseudos=None):
         """ Set additonal info for the CASTEP .cell file """
-        if pseudos:
-            elemset = list(set(self.mixelems))
-            pseudos = {"Mg": "1|1.8|3|4|4|30N:31L:32N",
-                    "O": "2|1.2|23|26|31|20NN:21NN(qc=9)",
-                    "La": "4|2.1|15|17|20|50N:60N:51N:52N:43N{4f0.1}(qc=6,q3=8)",
-                    "Al": "1|1.6|6|7|8|30N:31L:32N",
-                    "Ba":"2|2.0|8|10|11|50N:60N:51N(qc=5.5)"}
         self.pseudos = pseudos
         self.frac = frac
         self.kpoints = kpoints
@@ -563,3 +558,4 @@ class mixmap():
         self.pressure = pressure
         self.cell_constrs = cell_constrs
         self.ion_constrs = ion_constrs
+            

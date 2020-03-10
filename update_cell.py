@@ -4,28 +4,28 @@ import readmixcastep as rc
 import mixmap
 from glob import glob
 
-def main():
+def main(pureelems):
 
-  casfiles = glob("*.castep")
+    casfiles = glob("*.castep")
 
-  for file in casfiles:
-    cellname=file.replace(".castep", ".cell")
+    for file in casfiles:
+        print(file)
+        cellname=file.replace(".castep", ".cell")
+        if not glob(cellname):
+            cas = rc.readcas(file)
+            kpoints, offset = cas.get_kpoints()
+            constrs=cas.get_cell_constrs()
+            psps = cas.get_psps()
 
-    cas = rc.readcas(file)
-    kpoints, offset = cas.get_kpoints()
-    constrs=cas.get_cell_constrs()
-    psps = cas.get_psps()
+            mixatoms = cas.extract_struc()
+            mixkey = cas.get_mixkey(pureelems=pureelems)
 
-    mixatoms = cas.extract_struc()
-    mixkey = cas.get_mixkey()
+            #Map 
+            mapping = mixmap.mixmap(mixatoms, mixkey)
+            pureatoms = mapping.mix2pure(mixatoms)
 
-    #Map 
-    mapping = mixmap.mixmap(mixatoms, mixkey)
-    mapping.setcellparams(kpoints=kpoints, kpoints_offset=offset,\
-        cell_constrs=constrs, pseudos=psps)
-
-    mapping.casprint(mixatoms, cellname, pure=False)
-    
+            mapping.casprint(pureatoms, cellname, pure=True)
 
 if __name__ == "__main__":
-  main()
+    pureelems = {'Ba': 'La', 'Al': 'Mg'}
+    main(pureelems)

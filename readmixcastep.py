@@ -19,13 +19,12 @@ def pzero(x):
         x = 0.0
     return x
 
-
 def posstring(posn):
     """ unambiguously flattern a position array to a string """
     return ' '.join([str('{0:.6f}'.format(pzero(posn[j])))
                      for j in range(len(posn))])
-
-
+############################################################################
+#READCELLFILE
 class readcell():
     """ Class for reading CASTEP .cell files (may have mixed atoms) """
     def __init__(self, cellfile, flttol=1e-4):
@@ -41,11 +40,11 @@ class readcell():
         self.posns = self.casatoms.get_scaled_positions()
         self.Nions = len(self.casatoms)
         self.get_all_calc_params()
-    
+
     def get_all_calc_params(self):
-        """ Extracts all lines from the .cell file that are NOT related to
+        """
+        Extracts all lines from the .cell file that are NOT related to
         the structure (i.e. not the cell or positions block).
-        
         This is much easier to do for a .cell file (where everything is input)
         than for a .castep file.
         """
@@ -65,11 +64,11 @@ class readcell():
                        '%endblock' not in cellline):
                     cellline = self.celllines[ln]
                     ln += 1
-    
+
     def extract_struc(self, iteration=None):
         """ Ensures behaviour is the same as readcastep """
         return self.casatoms
-    
+
     def get_kpoints(self):
         """ returns
         list of ints kgrid : k-points per unit cell (MP grid)
@@ -89,7 +88,7 @@ class readcell():
             else:
                 offset += [1.0/(2*k)]
         return kgrid, offset
-    
+
     def get_psps(self):
         """ returns
         list of strings pseudos : CASTEP pseudo-potential strings """
@@ -109,12 +108,12 @@ class readcell():
         except UnboundLocalError:
             pseudos = None
         return pseudos
-    
+
     def get_elements(self):
         """ returns
         list of strings : element of each ion (atoms.get_chemical_symbols) """
         return self.elems
-    
+
     def get_init_spin(self):
         """ returns
         list of floats spins : initial spin for each ion (in Bohr magnetons)"""
@@ -136,7 +135,7 @@ class readcell():
                         break
                 spins[i] = float(lnsplt[j].split('=')[1])
         return spins
-    
+
     def get_mixkey(self, iteration=None):
         """ Extract a dictionary mapping mixed atoms onto single site
         returns
@@ -170,13 +169,13 @@ class readcell():
                 elemkey = sorted(list(set(wts.keys())))[0]
                 mixkey[poskey] = (elemkey, wts)
         return mixkey
-    
+
     def get_posns(self, iteration=-1):
         """ Takes iteration so compatable with readcastep
         returns
         np.array(Nions, 3) posns : fractional position of each ion """
         return self.posns
-    
+
     def get_ext_press(self):
         """ returns
         list of floats press : external pressure in Voigt notation """
@@ -198,7 +197,7 @@ class readcell():
         except UnboundLocalError:
             press = [0.0]*6
         return press
-    
+
     def get_cell_constrs(self):
         """ returns
         list of ints cellconstrs : CASTEP cell constraints (0 = fixed) """
@@ -219,13 +218,11 @@ class readcell():
         return self.casatoms.get_cell()
 
 #########################################################################
-
-
 class readcas():
     """
     Class for extracting info from .castep output files (may have mixed atoms)
     """
-    
+
     def __init__(self, casfile, flttol=1e-4):
         """
         string cellfile : path to .castep file
@@ -241,11 +238,11 @@ class readcas():
         self.complete = self.check_complete()
         self.Niterations = self.get_Niterations()
         self.elems = self.get_elements()
-    
+
     def extract_struc(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
-        
+
         returns
         ase.Atoms casatoms : structure at the desired iteration """
         posns = self.get_posns(iteration=iteration)
@@ -253,7 +250,7 @@ class readcas():
         casatoms = Atoms(scaled_positions=posns, cell=cell,
                          symbols=self.elems, pbc=True)
         return casatoms
-    
+
     def get_kpoints(self):
         """ returns
         list of ints kgrid : k-points per unit cell (MP grid)
@@ -263,13 +260,18 @@ class readcas():
                                   'MP grid size for SCF calculation is')
             kgrid = [int(c) for c in self.caslines[lkpts].split()[-3:]]
         except UnboundLocalError:
-            kgrid = [5, 5, 1]
+            kgrid = [8, 8, 4]
         offset = []
-        for k in kgrid:
-            if k % 2 == 0:
-                offset += [0.0]
-            else:
-                offset += [1.0/(2*k)]
+        try:
+            loffset = stri.strindex(self.caslines, 'with an offset of')
+            offset = [float(o) for o in self.caslines[loffset].split()[-3:]]
+        except UnboundLocalError:
+            for k in kgrid:
+                if k % 2 == 0:
+                    offset += [0.0]
+                else:
+                    offset += [1.0/(2*k)]
+
         return kgrid, offset
 
     def get_psps(self):
@@ -287,7 +289,7 @@ class readcas():
         except UnboundLocalError:
             pseudos = None
         return pseudos
-    
+
     def get_Nions(self):
         """ returns
         int Nions : number of ions in cell """
@@ -312,7 +314,7 @@ class readcas():
         except UnboundLocalError:
             complete = False
         return complete
-    
+
     def get_Niterations(self):
         """ returns
         int Niterations : number of structures with enthalpy computed """
@@ -325,7 +327,7 @@ class readcas():
             lenthalpies = stri.strindices(self.caslines, 'with enthalpy=')
             Niterations = len(lenthalpies)
         return Niterations
-    
+
     def get_elements(self):
         """ returns
         list of strings : element of each ion (atoms.get_chemical_symbols) """
@@ -334,7 +336,7 @@ class readcas():
         for casline in self.caslines[lelem+3:lelem+3+self.Nions]:
             elems += [casline.split()[1]]
         return elems
-    
+
     def get_init_spin(self):
         """ returns
         list of floats spins : initial spin for each ion (in Bohr magnetons)"""
@@ -347,7 +349,7 @@ class readcas():
         except UnboundLocalError:
             pass  # if no initial spins this table won't appear
         return spins
-    
+
     def get_final_spin(self):
         """ returns
         list of floats spins : final spin for each ion (in Bohr magnetons) """
@@ -373,11 +375,14 @@ class readcas():
                 'Could not find final atomic populations,' +
                 ' are you sure the calcation completed?')
         return spins
-    
-    def get_mixkey(self, iteration=-1):
+
+    def get_mixkey(self, iteration=-1, pureelems=None):
         """ Extract a dictionary mapping mixed atoms onto single site
         
         int iteration : atom positions (site labels) change during simulation
+
+        purelems: dictionary
+           {dopant: pure element} 
         
         returns
         dict mixkey : mapping -- see mixmap module for more info """
@@ -431,8 +436,18 @@ class readcas():
                 wts = {}
         except (UnboundLocalError, IndexError):
             pass  # Normal behaviour if no VCA used
+
+        #Making sure correct pure structure is given
+        if pureelems:
+            for el in list(pureelems.keys()):
+                for pos in posns:
+                    key = posstring(pos)
+                    if mixkey[key][0] == el:
+                        sitemix = mixkey[key][1]
+                        mixkey[key] = [pureelems[el], sitemix]
+
         return mixkey
-    
+
     def geomrange(self, iteration=-1, nmin=0, nmax=None):
         """
         int iteration : positive count from front and negative from back
@@ -467,7 +482,7 @@ class readcas():
                 lmin = indices[iteration - 1]
                 lmax = indices[iteration]
         return (lmin, lmax)
-    
+
     def get_posns(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
@@ -483,7 +498,7 @@ class readcas():
         for i in range(self.Nions):
             posns[i, :] = [float(p) for p in poslines[i].split()[3:6]]
         return posns
-    
+
     def get_ext_press(self):
         """ returns
         list of floats press : external pressure in Voigt notation """
@@ -501,7 +516,7 @@ class readcas():
         except UnboundLocalError:
             press = [0.0]*6
         return press
-    
+
     def get_cell_constrs(self):
         """ returns
         list of ints cellconstrs : CASTEP cell constraints (0 = fixed) """
@@ -512,7 +527,7 @@ class readcas():
         except UnboundLocalError:
             cellconstrs = None
         return cellconstrs
-    
+
     def get_cell(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
@@ -534,7 +549,7 @@ class readcas():
         for i in range(3):
             cell[i, :] = [float(p) for p in celllines[i].split()[0:3]]
         return cell
-    
+
     def get_enthalpy(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
@@ -557,7 +572,7 @@ class readcas():
     def get_energy(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
-        
+
         returns
         float energy : cell energy in eV """
         if self.Niterations == 0:
@@ -572,15 +587,20 @@ class readcas():
                                     nmin=nmin, nmax=nmax)
             energy = float(self.caslines[lenergy].split()[4])
         except UnboundLocalError:
-            lenergy = stri.strindex(self.caslines, 'Final energy =',
+            try:
+                lenergy = stri.strindex(self.caslines, 'Final energy =',
                                     nmin=nmin, nmax=nmax)
-            energy = float(self.caslines[lenergy].split()[3])
+                energy = float(self.caslines[lenergy].split()[3])
+            except UnboundLocalError:
+                lenergy = stri.strindex(self.caslines, 'LBFGS: Final Enthalpy')
+                energy = float(self.caslines[lenergy].split()[4])
+
         return energy
-    
+
     def get_forces(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
-        
+
         returns
         np.array(Nions, 3) forces : force vector of each ion (eV/Ang) """
         forces = np.zeros((self.Nions, 3))
@@ -606,7 +626,7 @@ class readcas():
     def get_stresses(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
-        
+
         returns
         np.array(3, 3) stresses : stress matrix (eV/Ang^3) """
         stresses = np.zeros((3, 3))
@@ -625,12 +645,14 @@ class readcas():
         for i in range(3):
             stresses[i, :] = [float(p) for p in stresslines[i].split()[2:5]]
         return stresses
-    
+
     def get_Fmax(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
-        
+
         returns
         float Fmax : maximum force on any ion (eV/Ang) """
         forces = self.get_forces(iteration=iteration)
         return max(np.linalg.norm(forces, axis=1))
+
+
