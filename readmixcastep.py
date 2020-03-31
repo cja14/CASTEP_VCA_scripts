@@ -24,7 +24,7 @@ def posstring(posn):
     return ' '.join([str('{0:.6f}'.format(pzero(posn[j])))
                      for j in range(len(posn))])
 ############################################################################
-#READCELLFILE
+#READ CELL FILE
 class readcell():
     """ Class for reading CASTEP .cell files (may have mixed atoms) """
     def __init__(self, cellfile, flttol=1e-4):
@@ -218,6 +218,7 @@ class readcell():
         return self.casatoms.get_cell()
 
 #########################################################################
+#READ CASTEP FILE
 class readcas():
     """
     Class for extracting info from .castep output files (may have mixed atoms)
@@ -653,6 +654,50 @@ class readcas():
         returns
         float Fmax : maximum force on any ion (eV/Ang) """
         forces = self.get_forces(iteration=iteration)
+
         return max(np.linalg.norm(forces, axis=1))
 
+    def get_bond_lengths(self):
+
+        """
+        This function extracts the bond lengths of the structure after a
+        SinglePoint, GeometryOptimization, or Electronic calculation was run.
+        Note that CASTEP prints bond lengths only for the optimised structure
+        in a geometry optimisation.
+
+        Returns:
+        --------
+        bondLengths: dict[(atom1, atom2)] = bond length (Å)
+            Dictionary whose keys are a tuple of strings containing the
+            chemical element and the number in the structure, and the value is
+            the bond length, given as a float in Å.
+        """
+        #Check if calculation completed
+        assert self.check_complete(), "The calculation did not complete and" +\
+                " the bond lengths cannot be extracted."
+
+        #Get line where bond lengths start being printed
+        (_, nmax) = self.geomrange(iteration=-1)
+        try:
+            stringstart = "Bond                   Population        Spin       " +\
+                "Length (A)"
+            start = stri.strindex(self.caslines, stringstart, nmin=nmax) + 2
+        except UnboundLocalError:
+            stringstart = "Bond                   Population      Length (A)"
+            start = stri.strindex(self.caslines, stringstart, nmin=nmax) + 2
+
+        stringend="Initialisation time ="
+        stringend="========================================================="+\
+                "============="
+        end = stri.strindex(self.caslines, stringend, nmin=nmax+20)
+
+        #Initialise dictionary
+        bondLengths = {}
+
+        for line in self.caslines[start:end]:
+            cont = line.split()
+            key=(cont[0] + cont[1], cont[3] + cont[4])
+            bondLengths[key] = float(cont[-1])
+
+        return bondLengths
 

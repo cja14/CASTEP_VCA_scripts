@@ -28,10 +28,11 @@ must be unique
 # Note that these are sensible defaults for A2BO4 Ruddlesden-Popper oxides
 
 kpts_default = [8, 8, 4]
-kpts_offset_default = [0.1, 0.1, 0.5]
+kpts_offset_default = [0, 0, 0]
 spins_default = None
 pressure_default = [0.0]*6
 cell_constrs_default = [1, 2, 3, 0, 0, 0]  # Assumes orthorhombic cell
+
 
 def pzero(x):
     """ Make sure zeros are displayed as positive """
