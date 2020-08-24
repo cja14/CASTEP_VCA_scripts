@@ -43,7 +43,6 @@ def gen_perturbations(casfile, supercell='Gamma'):
         cellfile = chem+'_'+str(d)+'.cell'
         mapping.casprint(mixdispl, cellfile)
 
-
 def calc_phonons(casfile, supercell='Gamma', method=2, postol=0.001,
                  bands=None, verbose=False):
     """ Compute phonons from completed singlepoint CASTEP calculations of

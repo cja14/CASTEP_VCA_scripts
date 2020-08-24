@@ -27,5 +27,5 @@ def main(pureelems):
             mapping.casprint(pureatoms, cellname, pure=True)
 
 if __name__ == "__main__":
-    pureelems = {'Ba': 'La', 'Al': 'Mg'}
+    pureelems = {'Sr': 'La', 'Al': 'Mg'}
     main(pureelems)
