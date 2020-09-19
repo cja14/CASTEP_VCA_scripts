@@ -1,10 +1,10 @@
 # CASTEP_VCA_scripts
 
-Scripts for interacting with CASTEP input and output files for simulations that model solid solutions using the virtual crystal approximation (VCA).
+Scripts for interacting with CASTEP input and output files for simulations that model solid solutions using the Virtual Crystal Approximation (VCA).
 
 **It is recommended that you familiarise yourself with these scripts by following the tutorial in the _examples/_ directory.**
 
-These scripts may be used to construct input files for simulations and extract info (structures, calculation parameters, forces, energies etc) from input and output files, even for cases that use the VCA -- something that the _ase_ (atomic simulation environment) module cannot do. These scripts may also be used to easily convert between solid solution ("mixed") structures and "pure" structures -- which may be interpreted by standard atomistic manipulation tools. There is also the functionality (within the _phonon_VCA.py_ module) to compute harmonic phonons using _Phonopy_ for cells with mixed atoms on a single site.
+These scripts may be used to construct input files for simulations and extract info (structures, calculation parameters, forces, energies etc) from input and output files, even for cases that use the VCA -- something that the _ase_ (Atomic Simulation Environment) module cannot do. These scripts may also be used to easily convert between solid solution ("mixed") structures and "pure" structures -- which may be interpreted by standard atomistic manipulation tools. There is also the functionality (within the _phonon_VCA.py_ module) to compute harmonic phonons using _Phonopy_ for cells with mixed atoms on a single site.
 
 The main modules, containing functions and classes for general use, are:
 * _readmixcastep.py_ -- for reading/writing VCA CASTEP input/output files

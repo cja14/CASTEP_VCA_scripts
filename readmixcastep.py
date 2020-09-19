@@ -1,32 +1,20 @@
 import numpy as np
-import strindices as stri
-from casase import casread
+from misctools import *
 from ase import Atoms
 
 recognised_tasks = ['single', 'geometry', "Electronic"]
 
 """
 Module to manage reading of CASTEP input and output files.
-Some of the functionality in this module replicates that in ase, however,
-unlike ase these scripts work with solid solution calculations employing the
+Some of the functionality in this module replicates that in ASE, however,
+unlike ASE these scripts work with solid solution calculations employing the
 virtual crystal approximation (VCA).
 """
 
-
-def pzero(x):
-    """ Make sure zeros are displayed as positive """
-    if x == 0.0:
-        x = 0.0
-    return x
-
-def posstring(posn):
-    """ unambiguously flattern a position array to a string """
-    return ' '.join([str('{0:.6f}'.format(pzero(posn[j])))
-                     for j in range(len(posn))])
 ############################################################################
 #READ CELL FILE
 class readcell():
-    """ Class for reading CASTEP .cell files (may have mixed atoms) """
+    """ Class for reading CASTEP .cell input files (may have mixed atoms) """
     def __init__(self, cellfile, flttol=1e-4):
         """
         string cellfile : path to .cell file
@@ -75,12 +63,12 @@ class readcell():
         list of floats offset : offset of MP grid
         """
         try:
-            lkpts = stri.strindex(self.celllines,
+            lkpts = strindex(self.celllines,
                                   ['kpoints_mp_grid', 'KPOINTS_MP_GRID'],
                                   either=True)
             kgrid = [int(c) for c in self.celllines[lkpts].split()[-3:]]
         except UnboundLocalError:
-            kgrid = [5, 5, 1]  # Defaults to sensible value for RP systems
+            kgrid = [8,8,4]  # Defaults to sensible value for RP systems
         offset = []
         for k in kgrid:
             if k % 2 == 0:
@@ -93,11 +81,11 @@ class readcell():
         """ returns
         list of strings pseudos : CASTEP pseudo-potential strings """
         try:
-            lpspsb = stri.strindex(self.celllines,
+            lpspsb = strindex(self.celllines,
                                    ['%block species_pot',
                                     '%BLOCK species_pot',
                                     '%BLOCK SPECIES_POT'], either=True)
-            lpspse = stri.strindex(self.celllines,
+            lpspse = strindex(self.celllines,
                                    ['%endblock species_pot',
                                     '%ENDBLOCK species_pot',
                                     '%ENDBLOCK SPECIES_POT'], either=True)
@@ -118,7 +106,7 @@ class readcell():
         """ returns
         list of floats spins : initial spin for each ion (in Bohr magnetons)"""
         spins = [0.0]*self.Nions
-        lposns = stri.strindex(self.celllines,
+        lposns = strindex(self.celllines,
                                ['%block positions_frac',
                                 '%BLOCK positions_frac',
                                 '%BLOCK POSITIONS_FRAC',
@@ -145,7 +133,7 @@ class readcell():
             elem = self.elems[i]
             # This is the default mixkey for no mixed atoms
             mixkey[posstring(self.posns[i, :])] = (elem, {elem: 1.0})
-        lposns = stri.strindex(self.celllines,
+        lposns = strindex(self.celllines,
                                ['%block positions_frac',
                                 '%BLOCK positions_frac',
                                 '%BLOCK POSITIONS_FRAC',
@@ -180,7 +168,7 @@ class readcell():
         """ returns
         list of floats press : external pressure in Voigt notation """
         try:
-            lpress = stri.strindex(self.celllines,
+            lpress = strindex(self.celllines,
                                    ['%block external_pressure',
                                     '%BLOCK external_pressure',
                                     '%BLOCK EXTERNAL_PRESSURE'], either=True)
@@ -202,7 +190,7 @@ class readcell():
         """ returns
         list of ints cellconstrs : CASTEP cell constraints (0 = fixed) """
         try:
-            lconstrs = stri.strindex(self.celllines,
+            lconstrs = strindex(self.celllines,
                                      ['%block cell_constraints',
                                       '%BLOCK cell_constraints',
                                       '%BLOCK CELL_CONSTRAINTS'], either=True)
@@ -257,14 +245,14 @@ class readcas():
         list of ints kgrid : k-points per unit cell (MP grid)
         list of floats offset : offset of MP grid """
         try:
-            lkpts = stri.strindex(self.caslines,
+            lkpts = strindex(self.caslines,
                                   'MP grid size for SCF calculation is')
             kgrid = [int(c) for c in self.caslines[lkpts].split()[-3:]]
         except UnboundLocalError:
             kgrid = [8, 8, 4]
         offset = []
         try:
-            loffset = stri.strindex(self.caslines, 'with an offset of')
+            loffset = strindex(self.caslines, 'with an offset of')
             offset = [float(o) for o in self.caslines[loffset].split()[-3:]]
         except UnboundLocalError:
             for k in kgrid:
@@ -279,7 +267,7 @@ class readcas():
         """ returns
         list of strings pseudos : CASTEP pseudo-potential strings """
         try:
-            lpsps = stri.strindex(self.caslines,
+            lpsps = strindex(self.caslines,
                                   'Files used for pseudopotentials:')
             pseudos = {}
             i = lpsps+1
@@ -294,14 +282,14 @@ class readcas():
     def get_Nions(self):
         """ returns
         int Nions : number of ions in cell """
-        lNions = stri.strindex(self.caslines, 'Total number of ions in cell')
+        lNions = strindex(self.caslines, 'Total number of ions in cell')
         Nions = int(self.caslines[lNions].split()[7])
         return Nions
 
     def get_task(self):
         """ returns
         string task : name of task (hopefully one of the recognised_tasks) """
-        ltask = stri.strindex(
+        ltask = strindex(
             self.caslines, 'type of calculation                            :')
         task = self.caslines[ltask].split()[4]
         return task
@@ -310,7 +298,7 @@ class readcas():
         """ returns
         bool complete : True if calculation is complete """
         try:
-            stri.strindex(self.caslines, 'Total time          =')
+            strindex(self.caslines, 'Total time          =')
             complete = True
         except UnboundLocalError:
             complete = False
@@ -325,14 +313,14 @@ class readcas():
             else:
                 Niterations = 0
         elif self.task == 'geometry':
-            lenthalpies = stri.strindices(self.caslines, 'with enthalpy=')
+            lenthalpies = strindices(self.caslines, 'with enthalpy=')
             Niterations = len(lenthalpies)
         return Niterations
 
     def get_elements(self):
         """ returns
         list of strings : element of each ion (atoms.get_chemical_symbols) """
-        lelem = stri.strindex(self.caslines, 'Element ', first=True)
+        lelem = strindex(self.caslines, 'Element ', first=True)
         elems = []
         for casline in self.caslines[lelem+3:lelem+3+self.Nions]:
             elems += [casline.split()[1]]
@@ -343,7 +331,7 @@ class readcas():
         list of floats spins : initial spin for each ion (in Bohr magnetons)"""
         spins = [0.0]*self.Nions
         try:
-            lspin = stri.strindex(self.caslines, 'Initial magnetic')
+            lspin = strindex(self.caslines, 'Initial magnetic')
             spinlines = self.caslines[lspin+3:lspin+3+self.Nions]
             for i in range(self.Nions):
                 spins[i] = float(spinlines[i].split()[4])
@@ -356,7 +344,7 @@ class readcas():
         list of floats spins : final spin for each ion (in Bohr magnetons) """
         spins = [0.0]*self.Nions
         try:
-            lspin = stri.strindex(self.caslines,
+            lspin = strindex(self.caslines,
                                   'Atomic Populations (Mulliken)')
             if (('spin' in self.caslines[lspin+2] or 'Spin'
                  in self.caslines[lspin+2])):
@@ -379,12 +367,12 @@ class readcas():
 
     def get_mixkey(self, iteration=-1, pureelems=None):
         """ Extract a dictionary mapping mixed atoms onto single site
-        
+
         int iteration : atom positions (site labels) change during simulation
 
         purelems: dictionary
            {dopant: pure element} 
-        
+
         returns
         dict mixkey : mapping -- see mixmap module for more info """
         posns = self.get_posns(iteration=iteration)
@@ -398,7 +386,7 @@ class readcas():
             # This is the default mixkey for no mixed atoms
             mixkey[posstring(posns[i, :])] = (elem, {elem: 1.0})
         try:
-            lmix = stri.strindex(self.caslines, 'Mixture',
+            lmix = strindex(self.caslines, 'Mixture',
                                  nmin=nmin, nmax=nmax)
             l = lmix + 3  # l is line index (which we'll iterate through)
             wts = {}
@@ -456,7 +444,7 @@ class readcas():
         (includes hanging/incomplete geom iterations!)
         int nmin, nmax : minimum/maximum line indices to consider
         Note: will count WITHIN these indices!
-        
+
         returns
         int (lmin, lmax) : minimum/maximum line index for iteration """
         if nmax is None:
@@ -473,12 +461,12 @@ class readcas():
                                  ' have been performed.')
             if iteration == 0 or iteration == -self.Niterations:
                 lmin = nmin
-                lmax = stri.strindex(self.caslines, 'finished iteration',
+                lmax = strindex(self.caslines, 'finished iteration',
                                      first=True, nmin=nmin, nmax=nmax)
                 # Above line is to ensure that the geom convergence info
                 # is included (occurs after the finished iteration statement)
             else:
-                indices = stri.strindices(self.caslines, 'finished iteration',
+                indices = strindices(self.caslines, 'finished iteration',
                                           nmin=nmin, nmax=nmax)
                 lmin = indices[iteration - 1]
                 lmax = indices[iteration]
@@ -494,7 +482,7 @@ class readcas():
             nmin, nmax = (0, self.Nlines)
         elif self.task == 'geometry':
             nmin, nmax = self.geomrange(iteration=iteration)
-        lposn = stri.strindex(self.caslines, 'Element ', nmin=nmin, nmax=nmax)
+        lposn = strindex(self.caslines, 'Element ', nmin=nmin, nmax=nmax)
         poslines = self.caslines[lposn + 3:lposn + 3 + self.Nions]
         for i in range(self.Nions):
             posns[i, :] = [float(p) for p in poslines[i].split()[3:6]]
@@ -504,7 +492,7 @@ class readcas():
         """ returns
         list of floats press : external pressure in Voigt notation """
         try:
-            lpress = stri.strindex(self.caslines,
+            lpress = strindex(self.caslines,
                                    'External pressure/stress (GPa)')
             presslines = self.caslines[lpress+1:lpress+4]
             press = [0.0]*6
@@ -522,7 +510,7 @@ class readcas():
         """ returns
         list of ints cellconstrs : CASTEP cell constraints (0 = fixed) """
         try:
-            lconstrs = stri.strindex(self.caslines, 'Cell constraints are:')
+            lconstrs = strindex(self.caslines, 'Cell constraints are:')
             cellconstrs = [int(c) for c in
                            self.caslines[lconstrs].split()[3:9]]
         except UnboundLocalError:
@@ -532,7 +520,7 @@ class readcas():
     def get_cell(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
-        
+
         returns
         np.array(3, 3) cell : unit cell vectors (Angstroms) """
         cell = np.zeros((3, 3))
@@ -544,7 +532,7 @@ class readcas():
                 # at the end or for each iteration since they do not change
                 iteration = 0
             nmin, nmax = self.geomrange(iteration=iteration)
-        lcell = stri.strindex(self.caslines, 'Real Lattice(A)',
+        lcell = strindex(self.caslines, 'Real Lattice(A)',
                               nmin=nmin, nmax=nmax)
         celllines = self.caslines[lcell + 1:lcell + 4]
         for i in range(3):
@@ -554,7 +542,7 @@ class readcas():
     def get_enthalpy(self, iteration=-1):
         """
         int iteration : index of desired iteration in simulation
-        
+
         returns
         float enthalpy : cell enthalpy in eV """
         if self.Niterations == 0:
@@ -565,7 +553,7 @@ class readcas():
                 'get_enthalpy not implemented if task == single.')
         elif self.task == 'geometry':
             (nmin, nmax) = self.geomrange(iteration=iteration)
-            lenthalpy = stri.strindex(self.caslines, 'with enthalpy=',
+            lenthalpy = strindex(self.caslines, 'with enthalpy=',
                                       nmin=nmin, nmax=nmax)
             enthalpy = float(self.caslines[lenthalpy].split()[6])
         return enthalpy
@@ -584,16 +572,16 @@ class readcas():
         elif self.task == 'geometry':
             (nmin, nmax) = self.geomrange(iteration=iteration)
         try:
-            lenergy = stri.strindex(self.caslines, 'Final energy, E',
+            lenergy = strindex(self.caslines, 'Final energy, E',
                                     nmin=nmin, nmax=nmax)
             energy = float(self.caslines[lenergy].split()[4])
         except UnboundLocalError:
             try:
-                lenergy = stri.strindex(self.caslines, 'Final energy =',
+                lenergy = strindex(self.caslines, 'Final energy =',
                                     nmin=nmin, nmax=nmax)
                 energy = float(self.caslines[lenergy].split()[3])
             except UnboundLocalError:
-                lenergy = stri.strindex(self.caslines, 'LBFGS: Final Enthalpy')
+                lenergy = strindex(self.caslines, 'LBFGS: Final Enthalpy')
                 energy = float(self.caslines[lenergy].split()[4])
 
         return energy
@@ -612,9 +600,10 @@ class readcas():
             (nmin, nmax) = (0, self.Nlines)
         elif self.task == 'geometry':
             (nmin, nmax) = self.geomrange(iteration=iteration)
-        lforce = stri.strindex(self.caslines,
+        lforce = strindex(self.caslines,
                                ['* Forces *',
-                                '* Symmetrised Forces *'],
+                                '* Symmetrised Forces *',
+                                '* Constrained Symmetrised Forces *'],
                                either=True, nmin=nmin, nmax=nmax)
         forcelines = self.caslines[lforce+6:lforce+6+self.Nions]
         for i in range(self.Nions):
@@ -638,7 +627,7 @@ class readcas():
             (nmin, nmax) = (0, self.Nlines)
         elif self.task == 'geometry':
             (nmin, nmax) = self.geomrange(iteration=iteration)
-        lstress = stri.strindex(self.caslines,
+        lstress = strindex(self.caslines,
                                 ['* Stress Tensor *',
                                  '* Symmetrised Stress Tensor *'],
                                 either=True, nmin=nmin, nmax=nmax)
@@ -681,15 +670,15 @@ class readcas():
         try:
             stringstart = "Bond                   Population        Spin       " +\
                 "Length (A)"
-            start = stri.strindex(self.caslines, stringstart, nmin=nmax) + 2
+            start = strindex(self.caslines, stringstart, nmin=nmax) + 2
         except UnboundLocalError:
             stringstart = "Bond                   Population      Length (A)"
-            start = stri.strindex(self.caslines, stringstart, nmin=nmax) + 2
+            start = strindex(self.caslines, stringstart, nmin=nmax) + 2
 
         stringend="Initialisation time ="
         stringend="========================================================="+\
                 "============="
-        end = stri.strindex(self.caslines, stringend, nmin=nmax+20)
+        end = strindex(self.caslines, stringend, nmin=nmax+20)
 
         #Initialise dictionary
         bondLengths = {}

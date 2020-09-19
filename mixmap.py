@@ -1,6 +1,7 @@
 import ase
 import ase.io as io
 import numpy as np
+from misctools import pzero, posstring
 
 """
 Module managing conversion between solid solution structures (using the VCA)
@@ -32,18 +33,11 @@ kpts_offset_default = [0, 0, 0]
 spins_default = None
 pressure_default = [0.0]*6
 cell_constrs_default = [1, 2, 3, 0, 0, 0]  # Assumes orthorhombic cell
-
-
-def pzero(x):
-    """ Make sure zeros are displayed as positive """
-    if x == 0.0:
-        x = 0.0
-    return x
-
-def posstring(posn):
-    """ unambiguously flattern a position array to a string """
-    return ' '.join([str('{0:.6f}'.format(pzero(posn[j])))
-                     for j in range(len(posn))])
+pseudos_default = {'Mg': '1|1.8|3|4|4|30N:31L:32N',\
+    'O': '2|1.2|23|26|31|20NN:21NN(qc=9)',\
+    'La': '4|2.1|15|17|20|50N:60N:51N:52N:43N{4f0.1}(qc=6,q3=8)',\
+    'Al': '1|1.6|6|7|8|30N:31L:32N',\
+    'Ba': '2|2.0|8|10|11|50N:60N:51N(qc=5.5)'}
 
 def create_mixture(pureatoms, mixkey):
     """
@@ -172,14 +166,14 @@ class mixmap():
                 pure2mix_map[p] = sitemapdict
                 p += 1
                 m += 1
-        
+
         self.pureions = len(pureelems)
         self.pureelems = pureelems
         self.puremasses = np.array(puremasses)
         self.pure2mix_map = pure2mix_map
         self.mix2pure_map = mix2pure_map
         self.mixsitemixes = mixsitemixes
-    
+
     @staticmethod
     def check_site_mixkey(site_mixkey):
         """ Raises an error if the input mixkey is not of the site format """
@@ -202,7 +196,7 @@ class mixmap():
         if error:
             raise ValueError("mixkey not of site form: " +
                              "{'x y z': ('A': {'A': 0.4, 'B':0.6, ...}), ...}")
-    
+
     @staticmethod
     def check_elem_mixkey(elem_mixkey):
         """ Raises an error if the input mixkey is not of the elem format """
@@ -216,7 +210,7 @@ class mixmap():
         if error:
             raise ValueError("mixkey not of elem form: " +
                              "{'A': {'A': 0.4, 'B':0.6, ...}, ...}")
-    
+
     @staticmethod
     def site2elem_mixkey(site_mixkey):
         """ Converts a mixkey of the site format to one of the elem format """
@@ -232,7 +226,7 @@ class mixmap():
                                      "elem_mixkey because different mixtures "
                                      + "for same  element on different sites.")
         return elem_mixkey
-    
+
     @staticmethod
     def trivial_mixkey(pureatoms):
         """ returns a site_mixkey where all sites are occupied by one ion """
@@ -243,7 +237,7 @@ class mixmap():
             poskey = posstring(posns[i, :])
             site_mixkey[poskey] = (elem, {elem: 1.0})
         return site_mixkey
-    
+
     @staticmethod
     def elem2site_mixkey(atoms, elem_mixkey, pure=True):
         """ Converts a mixkey of the elem format to one of the site format """
@@ -259,7 +253,7 @@ class mixmap():
                     if elem in elem_mixkey[key].keys():
                         site_mixkey[poskey] = (key, elem_mixkey[key])
         return site_mixkey
-    
+
     @staticmethod
     def closestimage(a, b, lats, rtn_dist=False):
         """ Give the coordinates of the closest atom b to atom a given periodic
@@ -268,7 +262,7 @@ class mixmap():
         np.array(3) b : absolute coordinates of movable atom
         np.array(3, 3) lats : unit cell vector
         bool dist : return a tuple of (bprime, dist) not just bprime
-        
+
         returns
         np.array(3) bprime : absolute coordinates of closest image of b to a
         """
@@ -288,7 +282,7 @@ class mixmap():
             return bprime, dist
         else:
             return bprime
-    
+
     @staticmethod
     def check_wts(mixkey, wttol=0.0001):
         """ Check that the atom weights for each site sums to 1.0 """
@@ -304,16 +298,16 @@ class mixmap():
                 raise AttributeError('Sum of concs on site ' + sitekey
                                      + ' equals ' + str(sitewt) +
                                      ' which does not make sense.')
-    
+
     def sitematch(self, elem, posn, cell):
         """
         Match a mix atomic site to that in the mixkey either by site or
         element (depending on format of mixkey)
-        
+
         str elem : element name
         np.array(3) posn : absolute position of atom
         np.array(3, 3) cell : unit cell vectors
-        
+
         returns
         str matchkey : key from self.mixkeys that matches element and site
         """
@@ -337,7 +331,7 @@ class mixmap():
         else:
             raise KeyError(str(sitekeys[0]) + '  not recognised as mixkey.')
         return matchkey
-    
+
     def pure2mix(self, pureatoms):
         """ Convert a pure ase.Atoms structure to a mixed structure """
         pureposns = pureatoms.get_positions()
@@ -350,7 +344,7 @@ class mixmap():
         mixatoms = ase.Atoms(positions=mixposns, symbols=self.mixelems,
                              cell=cell, pbc=True)
         return mixatoms
-    
+
     def mix2pure(self, mixatoms, phonopy=False):
         """ Convert a mix ase.atoms structure to a pure structure
         bool phonopy : if True will return a phonopy atoms object not ase """
@@ -371,7 +365,7 @@ class mixmap():
             pureatoms = ase.Atoms(positions=pureposns, symbols=self.pureelems,
                                   cell=cell, masses=self.puremasses, pbc=True)
         return pureatoms
-    
+
     def pinch_posns(self, mixatoms):
         """ Ensure that all mix atoms that are meant to occupy the same
         site actually have the same coordinate -- can be an issue in
@@ -392,7 +386,7 @@ class mixmap():
                               pbc=True)
         pureatoms.wrap()
         return self.pure2mix(pureatoms)
-    
+
     def mix2pure_spins(self, mixspins):
         """ Convert mixed spins to pure spins (not accounting for weights!) """
         purespins = np.zeros((self.pureions))
@@ -402,7 +396,7 @@ class mixmap():
             except KeyError:
                 pass
         return purespins
-    
+
     def pure2mix_spins(self, purespins):
         """ Convert pure spins to mixed spins (assumes they are equal) """
         mixspins = np.zeros((self.mixions))
@@ -411,7 +405,7 @@ class mixmap():
             for siteelem in list(sites.keys()):
                 mixspins[sites[siteelem][1]] = purespins[i]
         return mixspins
-    
+
     def mix2pure_forces(self, mixforces):
         """ Convert forces from mixed structure to pure forces (by taking
         a weighted average on each site) """
@@ -422,14 +416,14 @@ class mixmap():
             except KeyError:
                 pass
         return pureforces
-    
+
     def casprint(self, atoms, cellfile, pure=False):
         """ Produce a CASTEP .cell file from an atoms object
-        
+
         ase.Atoms atoms : structure to produce file from
         str cellfile : filename (incl. path) to write to
         bool pure : if True, produce .cell of pure struc, otherwise mix """
-        
+
         # Print cell
         caslines = ['%BLOCK LATTICE_CART\n']
         cell = atoms.get_cell()
@@ -438,7 +432,7 @@ class mixmap():
                 j]).rstrip('0').rstrip('.'))
                                          for j in range(3)])+'\n']
         caslines += ['%ENDBLOCK LATTICE_CART\n']+['\n']
-        
+
         # Print cell constraints (if not [1, 2, ... 6])
         if any([self.cell_constrs[i] != i+1 for i in range(6)]):
             caslines += ['%BLOCK cell_constraints\n']
@@ -447,7 +441,7 @@ class mixmap():
             caslines += ['\t'+'\t'.join([str(int(self.cell_constrs[j]))
                                          for j in range(3, 6)])+'\n']
             caslines += ['%ENDBLOCK cell_constraints\n']+['\n']
-                
+
         # Print elements, atomic positions, spins and mix weights
         mixelems = atoms.get_chemical_symbols()
         Natoms = len(mixelems)
@@ -495,20 +489,20 @@ class mixmap():
                                                     for j in range(3)])+'\n']
         caslines += ['kpoints_mp_offset = '+' '.join(
             [str(self.kpoints_offset[j]) for j in range(3)])+'\n']
-        
+
         # Pseudo potentials
         if self.pseudos:
             caslines += ['\n']+['%BLOCK SPECIES_POT\n']
             for elem in list(self.pseudos.keys()):
                 caslines += ['\t'+elem+' '+self.pseudos[elem]+'\n']
             caslines += ['%ENDBLOCK SPECIES_POT\n']+['\n']
-        
+
         # Symmetry statements
         if self.sym_gen:
             caslines += ['symmetry_generate\n']+['\n']
         if self.snap_sym:
             caslines += ['snap_to_symmetry\n']+['\n']
-        
+
         # External pressure
         if any([self.pressure[i] != 0.0 for i in range(6)]):
             caslines += ['%BLOCK external_pressure\n']+['\tGPA\n']
@@ -520,7 +514,7 @@ class mixmap():
             caslines += ['\t\t\t\t\t'+'\t'.join([str('{0:.8f}'.format(
                 self.pressure[j])) for j in [2]])+'\n']
             caslines += ['%ENDBLOCK external_pressure\n']+['\n']
-        
+
         # Ionic constraints
         # WARNING: at the moment this doesn't switch pureatoms <--> mixatoms
         if self.ion_constrs is not None:
@@ -536,16 +530,16 @@ class mixmap():
                                      '\t'.join([str(z) for z in zeros])+'\n']
                         k += 1
             caslines += ['%ENDBLOCK IONIC_CONSTRAINTS\n']+['\n']
-        
+
         # This writes the .cell file
         open(cellfile, 'w').writelines(caslines)
-    
+
     def setcellparams(self, frac=True,
                       kpoints=kpts_default, kpoints_offset=kpts_offset_default,
                       sym_gen=True, snap_sym=True, spins=spins_default,
                       pressure=pressure_default,
                       cell_constrs=cell_constrs_default, ion_constrs=None,
-                      pseudos=None):
+                      pseudos=pseudos_default):
         """ Set additonal info for the CASTEP .cell file """
         self.pseudos = pseudos
         self.frac = frac
@@ -559,4 +553,4 @@ class mixmap():
         self.pressure = pressure
         self.cell_constrs = cell_constrs
         self.ion_constrs = ion_constrs
-            
+
