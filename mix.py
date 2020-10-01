@@ -27,9 +27,9 @@ def generate_mix(x, mixname, pureatoms, mixkey, kpoints, offset, constrs, psps):
   print("mixkey: ", mixkey)
   mapping.casprint(mixatoms, mixname)
 
-  
-def gen_mixkey(x):
-  return {'La': {'La': round((2-x)/2, 4), 'Ba': round(x/2, 4)},\
+
+def gen_mixkey(x, A_site_doping="Ba"):
+  return {'La': {'La': round((2-x)/2, 4), A_site_doping: round(x/2, 4)},\
         'Mg': {'Mg': round(1-x, 4), 'Al': round(x, 4)},\
         'O': {'O': 1.0}}
 

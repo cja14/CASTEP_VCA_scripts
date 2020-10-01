@@ -60,4 +60,4 @@ def mix(purelems):
 if __name__ == "__main__":
     pureelems = {'Sr': 'La', 'Al': 'Mg', 'Ca': 'La', 'Ba': 'La', 'Nd': 'La',\
             'Y': 'La'}
-    mix(pureelems)
+    main(pureelems)
