@@ -44,7 +44,7 @@ def main():
         print("Pureatoms:", pureatoms)
         for x in doping:
             x = round(x, 3)
-            mixkey = gen_mixkey(x)
+            mixkey = gen_mixkey(x,A_site_doping="Sr")
             generate_mix(x, cellname, pureatoms, mixkey, kpoints, offset, constrs, psps)
 
 if __name__ == "__main__":
