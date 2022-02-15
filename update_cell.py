@@ -34,6 +34,28 @@ def main(pureelems):
         elif not glob(cellname.replace(".cell", ".cif")):
             cell2cif(cellname)
 
+def mainpure():
+    casfiles = glob("*.castep")
+    for cfile in casfiles:
+        print(cfile)
+        cellname=cfile.replace(".castep", ".cell")
+        if not glob(cellname):
+            cas = rc.readcas(cfile)
+            kpoints, offset = cas.get_kpoints()
+            constrs=cas.get_cell_constrs()
+            psps = cas.get_psps()
+
+            pureatoms = cas.extract_struc()
+            mixkey = cas.get_mixkey()
+
+            mapping = mixmap.mixmap(pureatoms, mixkey)
+            mapping.setcellparams(pseudos=psps, kpoints=kpoints,\
+                kpoints_offset=offset, cell_constrs=constrs)
+            mapping.casprint(pureatoms, cellname, pure=True)
+        elif not glob(cellname.replace(".cell", ".cif")):
+            cell2cif(cellname)
+
+    return None
 
 def mix(purelems):
 
@@ -58,6 +80,6 @@ def mix(purelems):
 
 
 if __name__ == "__main__":
-    pureelems = {'Sr': 'La', 'Al': 'Mg', 'Ca': 'La', 'Ba': 'La', 'Nd': 'La',\
-            'Y': 'La'}
-    main(pureelems)
+    #pureelems = {'Sr': 'La', 'Al': 'Mg', 'Ca': 'La', 'Ba': 'La', 'Nd': 'La',\
+    #            'Y': 'La'}
+    mainpure()

@@ -365,6 +365,20 @@ class readcas():
                 ' are you sure the calcation completed?')
         return spins
 
+    def get_elempos(self):
+        """
+        Returns dictionary where key is the element and value if the fractional
+        position
+        """
+        posns = self.get_posns()
+        elems = self.get_elements()
+
+        elempos = {}
+        for i, pos in enumerate(posns):
+            elempos[tuple(pos)] = elems[i]
+
+        return elempos
+
     def get_mixkey(self, iteration=-1, pureelems=None):
         """ Extract a dictionary mapping mixed atoms onto single site
 
@@ -423,7 +437,7 @@ class readcas():
                 mixkey[poskey] = (self.elems[matchindex], wts)
                 posn, matchindex = None, None
                 wts = {}
-        except (UnboundLocalError, IndexError):
+        except (UnboundLocalError, IndexError, TypeError):
             pass  # Normal behaviour if no VCA used
 
         #Making sure correct pure structure is given
@@ -482,7 +496,8 @@ class readcas():
             nmin, nmax = (0, self.Nlines)
         elif self.task == 'geometry':
             nmin, nmax = self.geomrange(iteration=iteration)
-        lposn = strindex(self.caslines, 'Element ', nmin=nmin, nmax=nmax)
+        lposn = strindex(self.caslines, 'Element ', nmin=nmin, nmax=nmax,
+                first=True)
         poslines = self.caslines[lposn + 3:lposn + 3 + self.Nions]
         for i in range(self.Nions):
             posns[i, :] = [float(p) for p in poslines[i].split()[3:6]]
@@ -668,11 +683,13 @@ class readcas():
         #Get line where bond lengths start being printed
         (_, nmax) = self.geomrange(iteration=-1)
         try:
-            stringstart = "Bond                   Population        Spin       " +\
-                "Length (A)"
+            #stringstart = "Bond                   Population        Spin       " +\
+            #    "Length (A)"
+            stringstart='Bond'
             start = strindex(self.caslines, stringstart, nmin=nmax) + 2
         except UnboundLocalError:
-            stringstart = "Bond                   Population      Length (A)"
+            stringstart='Bond'
+            #stringstart = "Bond                   Population      Length (A)"
             start = strindex(self.caslines, stringstart, nmin=nmax) + 2
 
         stringend="Initialisation time ="
